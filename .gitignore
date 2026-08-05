@@ -1,0 +1,11 @@
+# OS
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Editor
+.vscode/
+*.swp
+
+# Logs
+*.log

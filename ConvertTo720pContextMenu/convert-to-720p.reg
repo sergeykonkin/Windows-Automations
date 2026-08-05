@@ -1,0 +1,19 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.mp4\shell\Convert to 720p]
+@="Convert to 720p"
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.mp4\shell\Convert to 720p\command]
+@="\"D:\\Automations\\ConvertTo720pContextMenu\\convert-to-720p.bat\" \"%1\""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.mkv\shell\Convert to 720p]
+@="Convert to 720p"
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.mkv\shell\Convert to 720p\command]
+@="\"D:\\Automations\\ConvertTo720pContextMenu\\convert-to-720p.bat\" \"%1\""
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.mov\shell\Convert to 720p]
+@="Convert to 720p"
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.mov\shell\Convert to 720p\command]
+@="\"D:\\Automations\\ConvertTo720pContextMenu\\convert-to-720p.bat\" \"%1\""
