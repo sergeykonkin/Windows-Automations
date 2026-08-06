@@ -3,6 +3,9 @@
 Watches for Steam games starting/exiting and points OBS's "Game Capture"
 source at the game's window automatically, disabling it again on exit.
 Replaces Display Capture, which introduces latency/performance overhead.
+At the same time, retargets the "Game Audio" source
+(`wasapi_process_output_capture`) at the same game, so its audio switches
+along with the video.
 
 ## Files
 
@@ -13,15 +16,20 @@ Replaces Display Capture, which introduces latency/performance overhead.
 - `set-obs-game-capture.ps1` — one-shot PowerShell connector, invoked per
   event via a raw `System.Net.WebSockets.ClientWebSocket`. Talks to
   obs-websocket v5 (`ws://127.0.0.1:4455`) to retarget the "Game Capture"
-  input, fit it to the canvas, and enable/disable the scene item. Pure
-  PowerShell + .NET, no external runtime dependency.
+  input, fit it to the canvas, and enable/disable the scene item. Also
+  retargets and enables/disables "Game Audio" at the same exe,
+  best-effort (a missing/renamed audio input logs a warning but doesn't fail
+  the game-capture side). Pure PowerShell + .NET, no external runtime
+  dependency.
 - `register-task.ps1` — registers the watcher as the "OBS Auto Game Capture"
   scheduled task.
 
 ## Requirements
 
 - OBS running with obs-websocket enabled, a scene named `Scene` containing
-  an input named `Game Capture` (`inputKind: game_capture`).
+  an input named `Game Capture` (`inputKind: game_capture`) and, optionally,
+  an input named `Game Audio` (`inputKind:
+  wasapi_process_output_capture`) for audio to switch alongside it.
 - A user-scope `OBS_WS_SERVER_PASSWORD` environment variable holding the
   obs-websocket server password (never committed to this repo). Setting or
   changing it requires a fresh logon (or a task restart) to take effect.

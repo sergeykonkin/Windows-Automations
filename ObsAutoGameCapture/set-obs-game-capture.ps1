@@ -1,5 +1,7 @@
 # One-shot obs-websocket v5 client: retarget "Game Capture" at a game's
-# window, fit it to the canvas, and enable/disable the scene item.
+# window, fit it to the canvas, and enable/disable the scene item. Also
+# retargets "Game Audio" (wasapi_process_output_capture) at the same
+# exe in lockstep, best-effort - see Set-AudioCaptureTarget.
 # Invoked per-event by obs-auto-game-capture.ps1 - see README.md.
 #
 # Uses game_capture (not window_capture) so anti-cheat-protected games get
@@ -24,9 +26,10 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $CONFIG = @{
-    Url       = 'ws://127.0.0.1:4455'
-    SceneName = 'Scene'
-    InputName = 'Game Capture'
+    Url            = 'ws://127.0.0.1:4455'
+    SceneName      = 'Scene'
+    InputName      = 'Game Capture'
+    AudioInputName = 'Game Audio'
 }
 $TimeoutMs = 10000
 
@@ -185,7 +188,64 @@ function Resolve-Targets {
         }
     }
 
-    return @{ SceneName = $CONFIG.SceneName; InputName = $inputName }
+    # AudioInputName is best-effort: unlike the game_capture input, there's no
+    # safe "unique kind" fallback - other wasapi_process_output_capture inputs
+    # (e.g. a Discord audio source) can coexist, so guessing by kind risks
+    # picking the wrong one. A missing or renamed audio input just gets
+    # skipped rather than failing the call.
+    $audioInputName = $null
+    if ($names -contains $CONFIG.AudioInputName) {
+        $audioInputName = $CONFIG.AudioInputName
+    } else {
+        Write-Log "WARN audio input `"$($CONFIG.AudioInputName)`" not found - audio source switching disabled for this call"
+    }
+
+    return @{ SceneName = $CONFIG.SceneName; InputName = $inputName; AudioInputName = $audioInputName }
+}
+
+# Retargets/enables (ExeName set) or clears/disables (ExeName omitted) the audio
+# capture input to mirror the game_capture input. Best-effort and non-fatal:
+# failures here are logged but never bubble up to fail the overall exit code,
+# since the game_capture side is the part that actually matters.
+function Set-AudioCaptureTarget {
+    param($Ws, $Targets, [string]$ExeName)
+
+    if (-not $Targets.AudioInputName) { return }
+    $audioInputName = $Targets.AudioInputName
+
+    try {
+        $windowValue = ''
+        if ($ExeName) {
+            $props = Invoke-ObsRequest -Ws $Ws -RequestType 'GetInputPropertiesListPropertyItems' -RequestData @{ inputName = $audioInputName; propertyName = 'window' }
+            $match = Find-WindowMatch -Items $props.propertyItems -ExeName $ExeName
+            if (-not $match) {
+                Write-Log "NOTFOUND no audio-capturable window for exe `"$ExeName`" yet - leaving `"$audioInputName`" disabled"
+                return
+            }
+            $windowValue = $match.itemValue
+        }
+
+        Invoke-ObsRequest -Ws $Ws -RequestType 'SetInputSettings' -RequestData @{
+            inputName     = $audioInputName
+            inputSettings = @{ window = $windowValue }
+            overlay       = $true
+        } | Out-Null
+
+        $sceneItemId = (Invoke-ObsRequest -Ws $Ws -RequestType 'GetSceneItemId' -RequestData @{ sceneName = $Targets.SceneName; sourceName = $audioInputName }).sceneItemId
+        Invoke-ObsRequest -Ws $Ws -RequestType 'SetSceneItemEnabled' -RequestData @{
+            sceneName        = $Targets.SceneName
+            sceneItemId      = $sceneItemId
+            sceneItemEnabled = [bool]$ExeName
+        } | Out-Null
+
+        if ($ExeName) {
+            Write-Log "OK audio-captured `"$windowValue`" on `"$audioInputName`""
+        } else {
+            Write-Log "OK disabled and cleared `"$audioInputName`""
+        }
+    } catch {
+        Write-Log "WARN audio capture step failed for `"$audioInputName`": $_"
+    }
 }
 
 # itemValue is "Title:Class:exe" with colons inside title/class escaped by OBS,
@@ -260,6 +320,9 @@ function Invoke-Launch {
     } | Out-Null
 
     Write-Log "OK captured `"$($match.itemValue)`" for exe `"$ExeName`""
+
+    Set-AudioCaptureTarget -Ws $Ws -Targets $targets -ExeName $ExeName
+
     return 0
 }
 
@@ -286,6 +349,9 @@ function Invoke-Off {
     } | Out-Null
 
     Write-Log "OK disabled and cleared $($targets.InputName)"
+
+    Set-AudioCaptureTarget -Ws $Ws -Targets $targets
+
     return 0
 }
 
@@ -306,6 +372,15 @@ function Invoke-ListMode {
     $props = Invoke-ObsRequest -Ws $Ws -RequestType 'GetInputPropertiesListPropertyItems' -RequestData @{ inputName = $targets.InputName; propertyName = 'window' }
     foreach ($it in $props.propertyItems) {
         Write-Log "Window: enabled=$($it.itemEnabled) value=`"$($it.itemValue)`" name=`"$($it.itemName)`""
+    }
+
+    if ($targets.AudioInputName) {
+        $audioProps = Invoke-ObsRequest -Ws $Ws -RequestType 'GetInputPropertiesListPropertyItems' -RequestData @{ inputName = $targets.AudioInputName; propertyName = 'window' }
+        foreach ($it in $audioProps.propertyItems) {
+            Write-Log "AudioWindow: enabled=$($it.itemEnabled) value=`"$($it.itemValue)`" name=`"$($it.itemName)`""
+        }
+    } else {
+        Write-Log "AudioWindow: audio input `"$($CONFIG.AudioInputName)`" not found"
     }
 
     return 0
