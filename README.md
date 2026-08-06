@@ -32,7 +32,6 @@ It self-elevates, runs a dependency check, then re-registers all scheduled tasks
 - [SoundVolumeView](https://www.nirsoft.net/utils/sound_volume_view.html) at `D:\Portable Programs\SoundVolumeView\SoundVolumeView.exe`
 - [BurntToast](https://github.com/Windos/BurntToast) PowerShell module (`Install-Module BurntToast`)
 - [HWiNFO64](https://www.hwinfo.com/) at `C:\Program Files\HWiNFO64\HWiNFO64.EXE` (optional — only needed for the disabled task)
-- [Node.js](https://nodejs.org/) on `PATH` (used by ObsAutoGameCapture's OBS-websocket connector)
 - OBS with the obs-websocket server enabled on `ws://localhost:4455` (used by ObsAutoGameCapture)
 - A user-scope `OBS_WS_SERVER_PASSWORD` environment variable holding the obs-websocket server password — set this manually (`[Environment]::SetEnvironmentVariable('OBS_WS_SERVER_PASSWORD','<value>','User')`), it is never committed to this repo. **Setting or changing it requires a log off/on** (or at least a restart of the "OBS Auto Game Capture" task) before the already-running watcher picks it up — Scheduled Tasks inherit the environment from the logon session, not live.
 

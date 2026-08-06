@@ -29,7 +29,7 @@ $checks = @(
     @{ Path = "$root\ConvertTo720pContextMenu\convert-to-720p.bat"; Name = 'convert-to-720p.bat' }
     @{ Path = "$root\ConvertTo720pContextMenu\convert-to-720p.reg"; Name = 'convert-to-720p.reg' }
     @{ Path = "$root\ObsAutoGameCapture\obs-auto-game-capture.ps1"; Name = 'obs-auto-game-capture.ps1' }
-    @{ Path = "$root\ObsAutoGameCapture\set-obs-game-capture.js"; Name = 'set-obs-game-capture.js' }
+    @{ Path = "$root\ObsAutoGameCapture\set-obs-game-capture.ps1"; Name = 'set-obs-game-capture.ps1' }
     @{ Path = 'D:\Games\Steam\steamapps\common'; Name = 'D:\Games\Steam\steamapps\common (used by OBS Auto Game Capture)' }
     @{ Path = 'C:\Program Files\HWiNFO64\HWiNFO64.EXE'; Name = 'HWiNFO64.EXE (used by disabled task, optional)' }
 )
@@ -49,11 +49,6 @@ if (-not (Get-Module -ListAvailable -Name BurntToast)) {
     Write-Host "MISSING  BurntToast PowerShell module (needed by CS2 Keyboard Profile Reminder) -> Install-Module BurntToast" -ForegroundColor Yellow
 } else {
     Write-Host "OK       BurntToast module" -ForegroundColor Green
-}
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Host "MISSING  node not found on PATH (needed by OBS Auto Game Capture)" -ForegroundColor Yellow
-} else {
-    Write-Host "OK       node on PATH" -ForegroundColor Green
 }
 if (-not [Environment]::GetEnvironmentVariable('OBS_WS_SERVER_PASSWORD', 'User')) {
     Write-Host "MISSING  OBS_WS_SERVER_PASSWORD user env var (needed by OBS Auto Game Capture) -> [Environment]::SetEnvironmentVariable('OBS_WS_SERVER_PASSWORD','<value>','User')" -ForegroundColor Yellow

@@ -1,4 +1,4 @@
-# Polls for Steam games starting/exiting and drives set-obs-game-capture.js
+# Polls for Steam games starting/exiting and drives set-obs-game-capture.ps1
 # to retarget OBS's "Game Capture" source accordingly. See README.md.
 #
 # Polling instead of Win32_ProcessStartTrace (WMI) deliberately: that class
@@ -7,7 +7,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-$ConnectorPath = Join-Path $PSScriptRoot 'set-obs-game-capture.js'
+$ConnectorPath = Join-Path $PSScriptRoot 'set-obs-game-capture.ps1'
 $LogPath = Join-Path $PSScriptRoot 'obs-auto-game-capture.log'
 $PollIntervalSeconds = 3
 
@@ -56,22 +56,16 @@ function Initialize-Log {
 # Runs the connector, logs its output, and sets a sticky fatal flag on
 # auth-failed (2) / missing-password (6) so a misconfiguration doesn't spam
 # retries into the log forever - it only clears on watcher restart.
+#
+# No 2>&1 / $ErrorActionPreference dance needed here (unlike the old Node
+# version) - the connector writes its log lines straight to the real console
+# stdout stream (see its own Write-Log), so plain stdout capture is enough
+# and nothing gets misinterpreted as a terminating NativeCommandError.
 function Invoke-Connector {
     param([Parameter(Mandatory)][string[]]$ConnectorArgs)
 
-    # $ErrorActionPreference = 'Stop' (set script-wide) turns merged stderr from a
-    # native exe into a terminating NativeCommandError on each line - flip it off
-    # just for this call, otherwise every connector log line aborts the tick before
-    # Captured/LastAttempt get updated, and it re-invokes (re-flashes the source)
-    # on every single poll.
-    $prevEap = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-        $out = & node $ConnectorPath @ConnectorArgs 2>&1
-        $code = $LASTEXITCODE
-    } finally {
-        $ErrorActionPreference = $prevEap
-    }
+    $out = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $ConnectorPath @ConnectorArgs
+    $code = $LASTEXITCODE
     foreach ($line in $out) {
         Write-Log "[obs] $line"
     }
@@ -127,8 +121,6 @@ Write-Log '=== watcher starting ==='
 Write-Log "roots: $($GameRoots -join '; ')"
 Write-Log "poll interval: ${PollIntervalSeconds}s"
 Write-Log "OBS_WS_SERVER_PASSWORD: $(if ($env:OBS_WS_SERVER_PASSWORD) { 'present' } else { 'MISSING' })"
-$nodeVersion = try { (& node --version) } catch { 'not found' }
-Write-Log "node: $nodeVersion"
 
 # pid -> { Pid, Exe, FirstSeen, SortTime, Attempts, LastAttempt, Captured }
 $tracked = @{}
@@ -171,7 +163,7 @@ while ($true) {
             $remaining = @($tracked.Values | Sort-Object SortTime -Descending)
             if ($remaining.Count -gt 0) {
                 $target = $remaining[0]
-                $code = Invoke-Connector -ConnectorArgs @('--exe', $target.Exe, '--pid', $target.Pid)
+                $code = Invoke-Connector -ConnectorArgs @('-Exe', $target.Exe, '-GamePid', $target.Pid)
                 $target.Attempts++
                 $target.LastAttempt = Get-Date
                 if ($code -eq 0) {
@@ -179,7 +171,7 @@ while ($true) {
                     $currentTarget = $target.Pid
                 }
             } else {
-                Invoke-Connector -ConnectorArgs @('--off') | Out-Null
+                Invoke-Connector -ConnectorArgs @('-Off') | Out-Null
             }
         }
 
@@ -199,7 +191,7 @@ while ($true) {
             if (-not ($current.HasWindow -or $age -gt 20)) { continue }
             if (-not (Get-Process -Name 'obs64' -ErrorAction SilentlyContinue)) { continue }
 
-            $code = Invoke-Connector -ConnectorArgs @('--exe', $entry.Exe, '--pid', $entry.Pid)
+            $code = Invoke-Connector -ConnectorArgs @('-Exe', $entry.Exe, '-GamePid', $entry.Pid)
             $entry.Attempts++
             $entry.LastAttempt = Get-Date
             if ($code -eq 0) {
