@@ -57,10 +57,11 @@ function Initialize-Log {
 # auth-failed (2) / missing-password (6) so a misconfiguration doesn't spam
 # retries into the log forever - it only clears on watcher restart.
 #
-# No 2>&1 / $ErrorActionPreference dance needed here (unlike the old Node
-# version) - the connector writes its log lines straight to the real console
-# stdout stream (see its own Write-Log), so plain stdout capture is enough
-# and nothing gets misinterpreted as a terminating NativeCommandError.
+# Deliberately not merging stderr (2>&1) here: with $ErrorActionPreference =
+# 'Stop' (set script-wide), each merged stderr line from a native exe becomes
+# a terminating NativeCommandError. The connector writes its log lines to the
+# real console stdout stream (see its own Write-Log), so plain stdout capture
+# is sufficient and avoids that trap.
 function Invoke-Connector {
     param([Parameter(Mandatory)][string[]]$ConnectorArgs)
 

@@ -13,8 +13,8 @@ Replaces Display Capture, which introduces latency/performance overhead.
 - `set-obs-game-capture.ps1` — one-shot PowerShell connector, invoked per
   event via a raw `System.Net.WebSockets.ClientWebSocket`. Talks to
   obs-websocket v5 (`ws://127.0.0.1:4455`) to retarget the "Game Capture"
-  input, fit it to the canvas, and enable/disable the scene item. No
-  external runtime dependency (not even Node) - pure PowerShell + .NET.
+  input, fit it to the canvas, and enable/disable the scene item. Pure
+  PowerShell + .NET, no external runtime dependency.
 - `register-task.ps1` — registers the watcher as the "OBS Auto Game Capture"
   scheduled task.
 
