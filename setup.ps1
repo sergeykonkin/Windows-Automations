@@ -28,6 +28,9 @@ $checks = @(
     @{ Path = "$root\WatchConvertTo720p\watch-convert-to-720p.ps1"; Name = 'watch-convert-to-720p.ps1' }
     @{ Path = "$root\ConvertTo720pContextMenu\convert-to-720p.bat"; Name = 'convert-to-720p.bat' }
     @{ Path = "$root\ConvertTo720pContextMenu\convert-to-720p.reg"; Name = 'convert-to-720p.reg' }
+    @{ Path = "$root\ObsAutoGameCapture\obs-auto-game-capture.ps1"; Name = 'obs-auto-game-capture.ps1' }
+    @{ Path = "$root\ObsAutoGameCapture\set-obs-game-capture.js"; Name = 'set-obs-game-capture.js' }
+    @{ Path = 'D:\Games\Steam\steamapps\common'; Name = 'D:\Games\Steam\steamapps\common (used by OBS Auto Game Capture)' }
     @{ Path = 'C:\Program Files\HWiNFO64\HWiNFO64.EXE'; Name = 'HWiNFO64.EXE (used by disabled task, optional)' }
 )
 foreach ($c in $checks) {
@@ -47,12 +50,23 @@ if (-not (Get-Module -ListAvailable -Name BurntToast)) {
 } else {
     Write-Host "OK       BurntToast module" -ForegroundColor Green
 }
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    Write-Host "MISSING  node not found on PATH (needed by OBS Auto Game Capture)" -ForegroundColor Yellow
+} else {
+    Write-Host "OK       node on PATH" -ForegroundColor Green
+}
+if (-not [Environment]::GetEnvironmentVariable('OBS_WS_SERVER_PASSWORD', 'User')) {
+    Write-Host "MISSING  OBS_WS_SERVER_PASSWORD user env var (needed by OBS Auto Game Capture) -> [Environment]::SetEnvironmentVariable('OBS_WS_SERVER_PASSWORD','<value>','User')" -ForegroundColor Yellow
+} else {
+    Write-Host "OK       OBS_WS_SERVER_PASSWORD is set" -ForegroundColor Green
+}
 
 Write-Host "`n--- registering tasks ---"
 & "$root\AudioStartup\register-task.ps1"
 & "$root\CS2ProfileReminder\register-task.ps1"
 & "$root\WatchConvertTo720p\register-task.ps1"
 & "$root\StartHWiNFOAfterRTSS\register-task.ps1"
+& "$root\ObsAutoGameCapture\register-task.ps1"
 
 Write-Host "`n--- registry: Convert to 720p context menu ---"
 & "$root\ConvertTo720pContextMenu\register.ps1"
