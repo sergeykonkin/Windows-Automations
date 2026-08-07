@@ -13,9 +13,10 @@ Each folder is a self-contained automation:
 - **StartHWiNFOAfterRTSS** — starts HWiNFO64 once RTSS is running (registered disabled by default).
 - **ObsAutoGameCapture** — polls for Steam games starting/exiting under `D:\Games\Steam\steamapps\common` and switches OBS's "Game Capture" source to match via obs-websocket, disabling it when no game is running. See its `README.md` for details.
 - **ObsReplayGameTag** — OBS Lua script (loaded via Tools > Scripts, not a scheduled task) that renames each saved replay buffer file to include the currently captured game's name. See its `README.md` for the one-time setup step.
+- **ObsScreenshotMover** — OBS Lua script (loaded via Tools > Scripts, not a scheduled task) that moves each OBS screenshot out of the video output folder into a separate destination folder, defaulting to `Pictures\Screenshots`. See its `README.md` for the one-time setup step.
 - **_shared** — small VBScript helpers (`run-silent.vbs`, `start-after.vbs`) used by the scheduled tasks above.
 
-Each automation folder that registers a scheduled task has its own `register-task.ps1`; `ConvertTo720pContextMenu` has `register.ps1` for its registry entry instead. `ObsReplayGameTag` is loaded directly by OBS and registers nothing.
+Each automation folder that registers a scheduled task has its own `register-task.ps1`; `ConvertTo720pContextMenu` has `register.ps1` for its registry entry instead. `ObsReplayGameTag` and `ObsScreenshotMover` are loaded directly by OBS and register nothing.
 
 ## Usage
 
