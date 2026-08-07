@@ -22,8 +22,15 @@ function script_properties()
     return props
 end
 
+-- Only resolves (and shells out to PowerShell for) the default destination
+-- once - setting a real value here, not just a default, so OBS persists it
+-- and obs_data_has_user_value is true on every later startup. Without this,
+-- default_dest_dir() (and its console-flashing PowerShell call) would rerun
+-- on every OBS launch forever, since a default alone is never saved to disk.
 function script_defaults(settings)
-    obs.obs_data_set_default_string(settings, "dest_dir", default_dest_dir())
+    if not obs.obs_data_has_user_value(settings, "dest_dir") then
+        obs.obs_data_set_string(settings, "dest_dir", default_dest_dir())
+    end
 end
 
 function script_update(settings)
