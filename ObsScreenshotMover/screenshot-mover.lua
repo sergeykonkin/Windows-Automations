@@ -5,7 +5,7 @@
 -- fully written, and OBS keeps this script loaded across restarts once
 -- added.
 --
--- e.g. D:\Videos\CaptureCuts\Screenshot_2026-08-07_12-34-56.png
+-- e.g. D:\Captures\Raw\Screenshot_2026-08-07_12-34-56.png
 --      -> C:\Users\<user>\Pictures\Screenshots\Screenshot_2026-08-07_12-34-56.png
 
 obs = obslua

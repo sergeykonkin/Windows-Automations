@@ -9,7 +9,7 @@ Each folder is a self-contained automation:
 - **AudioStartup** — sets default output device and volumes at logon via SoundVolumeView.
 - **CS2ProfileReminder** — shows a toast notification when `cs2.exe` starts, reminding to switch keyboard profile.
 - **ConvertTo720pContextMenu** — adds a "Convert to 720p" right-click context menu entry for video files (ffmpeg + NVENC).
-- **WatchConvertTo720p** — watches `D:\Videos\CaptureCuts` for new `.mkv` files and auto-converts them to 720p.
+- **WatchConvertTo720p** — watches `D:\Captures\Raw` for new `.mkv` files and auto-converts them to 720p.
 - **StartHWiNFOAfterRTSS** — starts HWiNFO64 once RTSS is running (registered disabled by default).
 - **ObsAutoGameCapture** — polls for Steam games starting/exiting under `D:\Games\Steam\steamapps\common` and switches OBS's "Game Capture" source to match via obs-websocket, disabling it when no game is running. See its `README.md` for details.
 - **ObsReplayGameTag** — OBS Lua script (loaded via Tools > Scripts, not a scheduled task) that renames each saved replay buffer file to include the currently captured game's name. See its `README.md` for the one-time setup step.
