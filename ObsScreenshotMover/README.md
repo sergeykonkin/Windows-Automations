@@ -12,7 +12,7 @@ Windows' `Pictures\Screenshots` folder.
   `obs_frontend_get_last_screenshot()`, and moves the file to the
   configured destination folder (creating it if needed), disambiguating
   with a numeric suffix on a filename collision. Falls back to copy+delete
-  when a plain rename fails (crossing drives, e.g. `D:\Captures\Raw`
+  when a plain rename fails (crossing drives, e.g. `D:\Videos\Captures\Raw`
   -> `D:\Pictures\Screenshots`). Pure Lua, no obs-websocket, no scheduled
   task — OBS's bundled Lua interpreter runs it with no separate install, and
   OBS keeps the script loaded across restarts once added.

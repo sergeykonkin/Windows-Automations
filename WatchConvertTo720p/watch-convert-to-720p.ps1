@@ -1,6 +1,6 @@
 Add-Type -AssemblyName System.Windows.Forms
 
-$WatchPath = "D:\Captures\Raw"
+$WatchPath = "D:\Videos\Captures\Cuts"
 if (-not (Test-Path -LiteralPath $WatchPath)) {
     New-Item -ItemType Directory -Force -Path $WatchPath | Out-Null
 }
