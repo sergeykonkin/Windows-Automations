@@ -6,6 +6,7 @@ $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew
 $soundVolumeView = 'D:\Portable Programs\SoundVolumeView\SoundVolumeView.exe'
 $actions = @(
     New-ScheduledTaskAction -Execute $soundVolumeView -Argument '/SetDefault "Speakers" 1'
+    New-ScheduledTaskAction -Execute $soundVolumeView -Argument '/SetDefault "Headphones" 2'
     New-ScheduledTaskAction -Execute $soundVolumeView -Argument '/SetVolume "Speakers" 50'
     New-ScheduledTaskAction -Execute $soundVolumeView -Argument '/SetVolume "Headphones" 75'
     New-ScheduledTaskAction -Execute $soundVolumeView -Argument '/Mute "Microphone"'
