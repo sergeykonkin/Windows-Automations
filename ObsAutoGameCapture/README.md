@@ -13,6 +13,10 @@ along with the video.
   scheduled task at logon. Polls `Get-Process` every 3s for processes under
   `D:\Games\Steam\steamapps\common\`, and shells out to the connector on
   launch/exit. Guards against duplicate instances via a named mutex.
+  If a protected game hides its path, the watcher can recognize it through a
+  verified Steam parent process. It can also recognize a windowed process by a
+  unique executable name among installed Steam games, including after a watcher
+  restart. The installed executable list refreshes every 60 seconds.
 - `set-obs-game-capture.ps1` — one-shot PowerShell connector, invoked per
   event via a raw `System.Net.WebSockets.ClientWebSocket`. Talks to
   obs-websocket v5 (`ws://127.0.0.1:4455`) to retarget the "Game Capture"

@@ -79,12 +79,77 @@ function Invoke-Connector {
     return $code
 }
 
+# Keep verified descendants while their launcher is gone. StartTime prevents a
+# recycled PID from inheriting a previous game's identity.
+$KnownPathlessGameProcesses = @{}
+$InstalledGameExecutables = @{}
+$LastExecutableScan = [DateTime]::MinValue
+
+function Update-InstalledGameExecutables {
+    if (((Get-Date) - $LastExecutableScan).TotalSeconds -lt 60) { return }
+
+    $nameCounts = @{}
+    foreach ($root in $GameRoots) {
+        foreach ($file in (Get-ChildItem -LiteralPath $root -Filter '*.exe' -File -Recurse -ErrorAction SilentlyContinue)) {
+            if ($ExeDenylist -contains $file.Name) { continue }
+            $denied = $false
+            foreach ($d in $PathDenyContains) {
+                if ($file.FullName -like "*$d*") { $denied = $true; break }
+            }
+            if ($denied) { continue }
+            $nameCounts[$file.Name]++
+        }
+    }
+
+    $script:InstalledGameExecutables = @{}
+    foreach ($name in $nameCounts.Keys) {
+        if ($nameCounts[$name] -eq 1) { $script:InstalledGameExecutables[$name] = $true }
+    }
+    $script:LastExecutableScan = Get-Date
+}
+
 function Get-MatchingProcesses {
+    Update-InstalledGameExecutables
     $result = @()
+    $allById = @{}
+    $pathlessById = @{}
+    $matchedIds = @{}
+    $processInfoById = @{}
+
+    # Win32_Process exposes parent PID and creation time even when anti-cheat
+    # prevents Get-Process.Path from exposing the executable path.
+    try {
+        foreach ($info in (Get-CimInstance Win32_Process -Property ProcessId, ParentProcessId, CreationDate)) {
+            $processInfoById[[int]$info.ProcessId] = $info
+        }
+    } catch { }
+
     foreach ($p in (Get-Process)) {
         $path = $null
-        try { $path = $p.Path } catch { continue }
-        if (-not $path) { continue }
+        try { $path = $p.Path } catch { }
+
+        $startTime = $null
+        try { $startTime = $p.StartTime } catch { }
+        if (-not $startTime -and $processInfoById.ContainsKey($p.Id)) {
+            $startTime = $processInfoById[$p.Id].CreationDate
+        }
+
+        $exeName = if ($path) { [System.IO.Path]::GetFileName($path) } else { "$($p.ProcessName).exe" }
+        if ($ExeDenylist -contains $exeName) { continue }
+
+        $entry = [PSCustomObject]@{
+            Pid       = $p.Id
+            Exe       = $exeName
+            StartTime = $startTime
+            HasWindow = ($p.MainWindowHandle -ne [IntPtr]::Zero)
+            Pathless  = (-not $path)
+        }
+        $allById[$p.Id] = $entry
+
+        if (-not $path) {
+            $pathlessById[$p.Id] = $entry
+            continue
+        }
 
         $inRoot = $false
         foreach ($root in $GameRoots) {
@@ -101,19 +166,54 @@ function Get-MatchingProcesses {
         }
         if ($denied) { continue }
 
-        $exeName = [System.IO.Path]::GetFileName($path)
-        if ($ExeDenylist -contains $exeName) { continue }
-
-        $startTime = Get-Date
-        try { $startTime = $p.StartTime } catch { }
-
-        $result += [PSCustomObject]@{
-            Pid       = $p.Id
-            Exe       = $exeName
-            StartTime = $startTime
-            HasWindow = ($p.MainWindowHandle -ne [IntPtr]::Zero)
-        }
+        if (-not $entry.StartTime) { $entry.StartTime = Get-Date }
+        $matchedIds[$p.Id] = $true
+        $result += $entry
     }
+
+    # Retain descendants after their parent exits, but only for the same live
+    # process instance. The installed-exe fallback below also handles restarts.
+    foreach ($processId in @($KnownPathlessGameProcesses.Keys)) {
+        $entry = $pathlessById[$processId]
+        if (-not $entry -or -not $entry.StartTime -or $entry.StartTime -ne $KnownPathlessGameProcesses[$processId]) {
+            $KnownPathlessGameProcesses.Remove($processId)
+            continue
+        }
+        $matchedIds[$processId] = $true
+        $result += $entry
+    }
+
+    # Also recover a protected game after the launcher or watcher has exited.
+    # A unique installed Steam exe name plus a real top-level window avoids
+    # accepting background helpers or names shared by several installed games.
+    foreach ($entry in $pathlessById.Values) {
+        if ($matchedIds.ContainsKey($entry.Pid) -or -not $entry.StartTime -or -not $entry.HasWindow) { continue }
+        if (-not $InstalledGameExecutables.ContainsKey($entry.Exe)) { continue }
+        $KnownPathlessGameProcesses[$entry.Pid] = $entry.StartTime
+        $matchedIds[$entry.Pid] = $true
+        $result += $entry
+    }
+
+    # Follow any number of protected child-process hops from a verified Steam
+    # executable. Repeating the pass handles children listed before parents.
+    do {
+        $added = $false
+        foreach ($entry in $pathlessById.Values) {
+            if ($matchedIds.ContainsKey($entry.Pid) -or -not $entry.StartTime) { continue }
+            $info = $processInfoById[$entry.Pid]
+            if (-not $info) { continue }
+            $parentId = [int]$info.ParentProcessId
+            if (-not $matchedIds.ContainsKey($parentId)) { continue }
+            $parent = $allById[$parentId]
+            if (-not $parent -or ($parent.StartTime -and $parent.StartTime -gt $entry.StartTime)) { continue }
+
+            $KnownPathlessGameProcesses[$entry.Pid] = $entry.StartTime
+            $matchedIds[$entry.Pid] = $true
+            $result += $entry
+            $added = $true
+        }
+    } while ($added)
+
     return $result
 }
 
@@ -143,7 +243,8 @@ while ($true) {
                     LastAttempt = [DateTime]::MinValue
                     Captured    = $false
                 }
-                Write-Log "TRACK new process pid=$($p.Pid) exe=$($p.Exe)"
+                $matchInfo = if ($p.Pathless) { ' (process path unavailable)' } else { '' }
+                Write-Log "TRACK new process pid=$($p.Pid) exe=$($p.Exe)$matchInfo"
             }
         }
 
