@@ -6,7 +6,7 @@ Personal collection of Windows automation scripts and scheduled-task definitions
 
 Each folder is a self-contained automation:
 
-- **AudioStartup** — sets default output device and volumes at logon via SoundVolumeView.
+- **AudioStartup** — sets the speakers for normal audio, headphones for communications, their volumes, and microphone mute at logon via SoundVolumeView. If devices are not ready or verification fails, the same logon task retries every 5 seconds until the settings are verified, then exits.
 - **CS2ProfileReminder** — shows a toast notification when `cs2.exe` starts, reminding to switch keyboard profile.
 - **ConvertTo720pContextMenu** — adds a "Convert to 720p" right-click context menu entry for video files (ffmpeg + NVENC).
 - **WatchConvertTo720p** — watches `D:\Videos\Captures\Cuts` for new `.mkv` files and auto-converts them to 720p.

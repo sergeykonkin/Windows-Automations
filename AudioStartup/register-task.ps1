@@ -1,19 +1,17 @@
 $ErrorActionPreference = 'Stop'
 
 $user = "$env:USERDOMAIN\$env:USERNAME"
-$settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew
+$settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
+$root = Split-Path $PSScriptRoot -Parent
+$action = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$root\_shared\run-hidden-wait.vbs`" powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$PSScriptRoot\configure-audio.ps1`""
 
-$soundVolumeView = 'D:\Portable Programs\SoundVolumeView\SoundVolumeView.exe'
-$actions = @(
-    New-ScheduledTaskAction -Execute $soundVolumeView -Argument '/SetDefault "Speakers" 1'
-    New-ScheduledTaskAction -Execute $soundVolumeView -Argument '/SetDefault "Headphones" 2'
-    New-ScheduledTaskAction -Execute $soundVolumeView -Argument '/SetVolume "Speakers" 50'
-    New-ScheduledTaskAction -Execute $soundVolumeView -Argument '/SetVolume "Headphones" 75'
-    New-ScheduledTaskAction -Execute $soundVolumeView -Argument '/Mute "Microphone"'
-)
-$trigger = New-ScheduledTaskTrigger -AtLogOn
-$trigger.Delay = 'PT10S'
+# The script retries inside this single logon run until all settings are verified.
+$logon = New-ScheduledTaskTrigger -AtLogOn
+$logon.Delay = 'PT10S'
 $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
 
-Register-ScheduledTask -TaskName 'Audio Startup' -Action $actions -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
-Write-Host "OK  Audio Startup"
+Register-ScheduledTask -TaskName 'Audio Startup' -Action $action -Trigger $logon -Principal $principal -Settings $settings -Force -ErrorAction Stop | Out-Null
+if (Get-ScheduledTask -TaskName 'Audio Communications Repair' -ErrorAction SilentlyContinue) {
+    Unregister-ScheduledTask -TaskName 'Audio Communications Repair' -Confirm:$false -ErrorAction Stop
+}
+Write-Host 'OK  Audio Startup'

@@ -22,7 +22,9 @@ if (-not (Test-Path $root)) {
 Write-Host "--- dependency check ---"
 $checks = @(
     @{ Path = 'D:\Portable Programs\SoundVolumeView\SoundVolumeView.exe'; Name = 'SoundVolumeView.exe' }
+    @{ Path = "$root\AudioStartup\configure-audio.ps1"; Name = 'configure-audio.ps1' }
     @{ Path = "$root\_shared\run-silent.vbs"; Name = 'run-silent.vbs' }
+    @{ Path = "$root\_shared\run-hidden-wait.vbs"; Name = 'run-hidden-wait.vbs' }
     @{ Path = "$root\_shared\start-after.vbs"; Name = 'start-after.vbs' }
     @{ Path = "$root\CS2ProfileReminder\cs2-profile-reminder.ps1"; Name = 'cs2-profile-reminder.ps1' }
     @{ Path = "$root\WatchConvertTo720p\watch-convert-to-720p.ps1"; Name = 'watch-convert-to-720p.ps1' }
